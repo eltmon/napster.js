@@ -14,7 +14,6 @@ Html5Player.prototype.auth = function auth() {
     id: 'napster-streaming-player',
     apikey: API_KEY,
     token: Napster.member.accessToken,
-    enableLogging: true,
     bitrate: 192,
     downgrade: true,
     currentUser: {},
@@ -28,11 +27,41 @@ Html5Player.prototype.auth = function auth() {
       that.streamingPlayer.play(that.currentTrack, 'UNKNOWN');
     }
   });
+  this.streamingPlayer.callbackHandler('trackProgress', function() {
+    window.parent.postMessage({ type: 'playtimer', data: {
+      id: that.currentTrack,
+      code: 'trackProgress',
+      currentTime: that.streamingPlayer.currentTime(),
+      totalTime: that.streamingPlayer.track.duration
+    } }, "*");
+  });
+  this.streamingPlayer.callbackHandler('sessionExpired', function() {
+    window.parent.postMessage({
+      type: 'playsessionexpired', data: {
+        id: that.currentTrack,
+        code: 'sessionExpired'
+      }
+    }, "*");
+  });
+
+  this.streamingPlayer.callbackHandler('trackLoaded', function() {
+    window.parent.postMessage({ type: 'trackLoaded', data: {
+      id: that.currentTrack,
+      code: 'trackLoaded'
+    } }, "*");
+  });
 };
 
-Html5Player.prototype.play = function play(o){
-  this.streamingPlayer.play(o, { context: 'UNKNOWN'});
+
+Html5Player.prototype.play = function play(o, t){
+  if(typeof t == 'number') {
+    this.streamingPlayer.pause();
+    this.streamingPlayer.seek(o, t, { context: 'UNKNOWN'});
+  } else {
+    this.streamingPlayer.play(o, { context: 'UNKNOWN'});
+  }
   this.played.push(o)
+  this.currentTrack = o;
   window.parent.postMessage({ type: 'playevent', data: { id: o, code: 'PlayStarted', playing: true } }, "*")
 };
 Html5Player.prototype.pause = function pause() {
@@ -46,12 +75,14 @@ Html5Player.prototype.resume = function resume() {
 };
 
 Html5Player.prototype.next = function next() {
+  this.pause();
   if (this.queued.length >= 1) {
     // only do something if there are songs left in the queue
     this.play(this.queued.pop());
   }
 };
 Html5Player.prototype.previous = function previous() {
+    this.pause();
     if (this.played.length === 1) {
       // when there are no songs left, the previous button will just restart the current track, and not do queue manipulation.
       this.streamingPlayer.play(this.played[0], { context: 'UNKNOWN'});
@@ -127,6 +158,7 @@ Html5Player.prototype.on = function on(eventName, callback){
         p.paused = m.data.data.paused = paused;
         p.currentTrack = (p.playing || p.paused) ? m.data.data.id : null;
       }
+
       callback.call(this, m.data);
     }
   });

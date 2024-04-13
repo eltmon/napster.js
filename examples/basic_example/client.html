@@ -5,7 +5,7 @@
     <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="napster.min.js" type="text/javascript"></script>
     <script type="text/javascript">
-    var API_KEY = 'API_KEY';
+    var API_KEY = 'apiKey';
 
       function refresh(callback) {
         $.ajax({
@@ -40,6 +40,10 @@
       }
 
       $(document).ready(function() {
+        if (typeof Napster === 'undefined') {
+          $('body').html("There has been an error while loading Napster.js. Please check the console for errors.")
+          return;
+        }
         var currentTrack;
         Napster.init({ consumerKey: API_KEY, isHTML5Compatible: true });
 
@@ -258,13 +262,12 @@
       }
       #napster-streaming-player {
         margin-bottom: 900px;
-        display: none;
       }
     </style>
   </head>
   <body>
     <div class="header">
-      <video id='napster-streaming-player' class='video-js'></video>
+      <video-js id='napster-streaming-player' class='video-js' playsinline></video-js>
       <div class="header-text">napster.js Sample App<span class="user"></span></div>
     </div>
     <button id="next">Next</button>
